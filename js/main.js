@@ -111,16 +111,35 @@ function initMap() {
   map.on('moveend', updateDashboard);
 }
 
+function buildChartColumnsFromCounts(severityCounts) {
+  const preferredOrder = [
+    'Property Damage Only Collision',
+    'Injury Collision',
+    'Serious Injury Collision',
+    'Fatality Collision',
+    'Unknown / Other'
+  ];
+
+  const labels = preferredOrder.filter(k => severityCounts[k] !== undefined);
+
+  Object.keys(severityCounts).forEach((k) => {
+    if (!preferredOrder.includes(k)) labels.push(k);
+  });
+
+  const xCol = ['x', ...labels];
+  const countCol = ['Count', ...labels.map(l => severityCounts[l] || 0)];
+
+  return { xCol, countCol };
+}
+
 function updateDashboard() {
   if (!map || !map.getLayer(LAYER_ID)) return;
 
   const features = map.queryRenderedFeatures({ layers: [LAYER_ID] });
 
-  const collisionsInView = features.length;
-  document.getElementById('kpi-collisions').textContent = String(collisionsInView);
+  document.getElementById('kpi-collisions').textContent = String(features.length);
 
   let injuriesSum = 0;
-
   const severityCounts = {};
 
   features.forEach((f) => {
@@ -136,39 +155,24 @@ function updateDashboard() {
 
   document.getElementById('kpi-injuries').textContent = String(injuriesSum);
 
-  const preferredOrder = [
-    'Property Damage Only Collision',
-    'Injury Collision',
-    'Serious Injury Collision',
-    'Fatality Collision',
-    'Unknown / Other'
-  ];
-
-  const columns = preferredOrder
-    .filter(k => severityCounts[k] !== undefined)
-    .map(k => [k, severityCounts[k]]);
-
-  Object.keys(severityCounts).forEach((k) => {
-    if (!preferredOrder.includes(k)) columns.push([k, severityCounts[k]]);
-  });
+  const { xCol, countCol } = buildChartColumnsFromCounts(severityCounts);
 
   if (!chart) {
     chart = c3.generate({
       bindto: '#chart',
       data: {
-        columns: columns,
+        x: 'x',
+        columns: [xCol, countCol],
         type: 'bar'
       },
       axis: {
-  x: {
-    type: 'category',
-    categories: columns.map(c => c[0]),
-    tick: {
-      rotate: 20,
-      multiline: false
-    }
-  }
-},
+        x: {
+          type: 'category',
+          tick: {
+            rotate: 20,
+            multiline: false
+          }
+        },
         y: {
           tick: {
             format: (d) => d
@@ -183,7 +187,10 @@ function updateDashboard() {
       }
     });
   } else {
-    chart.load({ columns: columns });
+    chart.load({
+      columns: [xCol, countCol],
+      unload: true
+    });
   }
 }
 
