@@ -1,5 +1,3 @@
-/* global mapboxgl, c3 */
-
 mapboxgl.accessToken = 'pk.eyJ1IjoibmFsZW11MTMiLCJhIjoiY21sMGR1OHlkMGNsMDNpcHhqbHQxZnNkaSJ9.lIr1YapCLUudIRiNX6kFuA';
 
 const DEFAULT_VIEW = {
@@ -14,21 +12,9 @@ const DATA_PATH = 'data/collisions.geojson';
 const SOURCE_ID = 'collisions';
 const LAYER_ID = 'collisions-layer';
 
-// These get refreshed every time the dashboard updates
-let currentLabels = [];
-let currentBarColors = [];
-
 function safeNumber(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
-}
-
-function severityToColor(sev) {
-  if (sev === 'Property Damage Only Collision') return '#8aa1b1';
-  if (sev === 'Injury Collision') return '#42c3d6';
-  if (sev === 'Serious Injury Collision') return '#f59f00';
-  if (sev === 'Fatality Collision') return '#e03131';
-  return '#adb5bd'; // Unknown / Other
 }
 
 function getSeverityColorExpression() {
@@ -125,83 +111,68 @@ function initMap() {
   map.on('moveend', updateDashboard);
 }
 
-function buildChartColumnsFromCounts(severityCounts) {
-  const preferredOrder = [
-    'Property Damage Only Collision',
-    'Injury Collision',
-    'Serious Injury Collision',
-    'Fatality Collision',
-    'Unknown / Other'
-  ];
-
-  // Stable label list (so colors match consistently)
-  const labels = preferredOrder.filter(k => severityCounts[k] !== undefined);
-
-  // Add unexpected categories at the end
-  Object.keys(severityCounts).forEach((k) => {
-    if (!preferredOrder.includes(k)) labels.push(k);
-  });
-
-  // Save globally for bar coloring
-  currentLabels = labels;
-  currentBarColors = labels.map(severityToColor);
-
-  // C3 needs explicit x column
-  const xCol = ['x', ...labels];
-  const countCol = ['Count', ...labels.map(l => severityCounts[l] || 0)];
-
-  return { xCol, countCol };
-}
-
 function updateDashboard() {
   if (!map || !map.getLayer(LAYER_ID)) return;
 
   const features = map.queryRenderedFeatures({ layers: [LAYER_ID] });
 
+  // KPIs
   document.getElementById('kpi-collisions').textContent = String(features.length);
 
   let injuriesSum = 0;
-  const severityCounts = {};
+
+  // Counts by severity
+  let pdo = 0;
+  let injury = 0;
+  let serious = 0;
+  let fatal = 0;
+  let unknown = 0;
 
   features.forEach((f) => {
     const p = f.properties || {};
     const sev = p.SEVERITYDESC || 'Unknown / Other';
     const injuries = safeNumber(p.INJURIES);
-
     injuriesSum += injuries;
 
-    if (!severityCounts[sev]) severityCounts[sev] = 0;
-    severityCounts[sev] += 1;
+    if (sev === 'Property Damage Only Collision') pdo += 1;
+    else if (sev === 'Injury Collision') injury += 1;
+    else if (sev === 'Serious Injury Collision') serious += 1;
+    else if (sev === 'Fatality Collision') fatal += 1;
+    else unknown += 1;
   });
 
   document.getElementById('kpi-injuries').textContent = String(injuriesSum);
 
-  const { xCol, countCol } = buildChartColumnsFromCounts(severityCounts);
+  // --- THIS IS THE "OLD" COLORED VERSION: each severity is its own series ---
+  // And the ONLY fix is giving a real category label to the x axis (not 0)
+  const categories = ['Severity']; // single category label for grouped bars
+
+  const columns = [
+    ['Property Damage Only', pdo],
+    ['Injury Collision', injury],
+    ['Serious Injury Collision', serious],
+    ['Fatality Collision', fatal],
+    ['Unknown / Other', unknown]
+  ];
 
   if (!chart) {
     chart = c3.generate({
       bindto: '#chart',
       data: {
-        x: 'x',
-        columns: [xCol, countCol],
+        columns: columns,
         type: 'bar',
-
-        // IMPORTANT: color each bar by its index (category), not the series
-        color: function (color, d) {
-          // d.index exists for bars
-          if (d && typeof d.index === 'number' && currentBarColors[d.index]) {
-            return currentBarColors[d.index];
-          }
-          return color;
+        colors: {
+          'Property Damage Only': '#8aa1b1',
+          'Injury Collision': '#42c3d6',
+          'Serious Injury Collision': '#f59f00',
+          'Fatality Collision': '#e03131',
+          'Unknown / Other': '#adb5bd'
         }
       },
       axis: {
         x: {
           type: 'category',
-          tick: {
-            rotate: 20,
-            multiline: false
-          }
+          categories: categories
         },
         y: {
           tick: { format: (d) => d }
@@ -211,11 +182,7 @@ function updateDashboard() {
       bar: { width: { ratio: 0.75 } }
     });
   } else {
-    // Update chart values + labels (and bar colors update automatically because d.index changes)
-    chart.load({
-      columns: [xCol, countCol],
-      unload: true
-    });
+    chart.load({ columns: columns });
   }
 }
 
