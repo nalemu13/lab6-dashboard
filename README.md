@@ -88,16 +88,27 @@ Returns the dashboard to the default map view.
 Repository file structure:
 
 lab6-dashboard/
+
   index.html
+  
   readme.md
+  
   css/
+  
     style.css
+    
   js/
+  
     main.js
+    
   data/
+  
     collisions.geojson
+    
   img/
+  
     dashboard.png
+    
     demo.png
     
 ---
