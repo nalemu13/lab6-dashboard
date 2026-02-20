@@ -1,1 +1,47 @@
+body, html {
 
+margin: 0;
+padding: 0;
+height: 100%;
+
+}
+
+
+#map {
+
+position: absolute;
+
+top: 0;
+bottom: 0;
+width: 100%;
+
+}
+
+
+#info-panel {
+
+position: absolute;
+
+top: 0;
+left: 0;
+
+width: 350px;
+
+background: white;
+
+padding: 20px;
+
+z-index: 1;
+
+}
+
+
+#count {
+
+font-size: 40px;
+
+color: orange;
+
+margin-bottom: 20px;
+
+}
