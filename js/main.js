@@ -1,3 +1,5 @@
+/* global mapboxgl, c3 */
+
 mapboxgl.accessToken = 'pk.eyJ1IjoibmFsZW11MTMiLCJhIjoiY21sMGR1OHlkMGNsMDNpcHhqbHQxZnNkaSJ9.lIr1YapCLUudIRiNX6kFuA';
 
 const DEFAULT_VIEW = {
@@ -12,9 +14,21 @@ const DATA_PATH = 'data/collisions.geojson';
 const SOURCE_ID = 'collisions';
 const LAYER_ID = 'collisions-layer';
 
+// These get refreshed every time the dashboard updates
+let currentLabels = [];
+let currentBarColors = [];
+
 function safeNumber(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
+}
+
+function severityToColor(sev) {
+  if (sev === 'Property Damage Only Collision') return '#8aa1b1';
+  if (sev === 'Injury Collision') return '#42c3d6';
+  if (sev === 'Serious Injury Collision') return '#f59f00';
+  if (sev === 'Fatality Collision') return '#e03131';
+  return '#adb5bd'; // Unknown / Other
 }
 
 function getSeverityColorExpression() {
@@ -25,7 +39,7 @@ function getSeverityColorExpression() {
     'Injury Collision', '#42c3d6',
     'Serious Injury Collision', '#f59f00',
     'Fatality Collision', '#e03131',
-    '#adb5bd'
+    /* default */ '#adb5bd'
   ];
 }
 
@@ -120,12 +134,19 @@ function buildChartColumnsFromCounts(severityCounts) {
     'Unknown / Other'
   ];
 
+  // Stable label list (so colors match consistently)
   const labels = preferredOrder.filter(k => severityCounts[k] !== undefined);
 
+  // Add unexpected categories at the end
   Object.keys(severityCounts).forEach((k) => {
     if (!preferredOrder.includes(k)) labels.push(k);
   });
 
+  // Save globally for bar coloring
+  currentLabels = labels;
+  currentBarColors = labels.map(severityToColor);
+
+  // C3 needs explicit x column
   const xCol = ['x', ...labels];
   const countCol = ['Count', ...labels.map(l => severityCounts[l] || 0)];
 
@@ -159,22 +180,21 @@ function updateDashboard() {
 
   if (!chart) {
     chart = c3.generate({
-  bindto: '#chart',
-  data: {
-    x: 'x',
-    columns: [xCol, countCol],
-    type: 'bar'
-  },
+      bindto: '#chart',
+      data: {
+        x: 'x',
+        columns: [xCol, countCol],
+        type: 'bar',
 
-  color: {
-    pattern: [
-      '#8aa1b1',  // Property Damage Only
-      '#42c3d6',  // Injury Collision
-      '#f59f00',  // Serious Injury
-      '#e03131',  // Fatality
-      '#adb5bd'   // Unknown
-    ]
-  },
+        // IMPORTANT: color each bar by its index (category), not the series
+        color: function (color, d) {
+          // d.index exists for bars
+          if (d && typeof d.index === 'number' && currentBarColors[d.index]) {
+            return currentBarColors[d.index];
+          }
+          return color;
+        }
+      },
       axis: {
         x: {
           type: 'category',
@@ -184,19 +204,14 @@ function updateDashboard() {
           }
         },
         y: {
-          tick: {
-            format: (d) => d
-          }
+          tick: { format: (d) => d }
         }
       },
-      legend: {
-        show: false
-      },
-      bar: {
-        width: { ratio: 0.75 }
-      }
+      legend: { show: false },
+      bar: { width: { ratio: 0.75 } }
     });
   } else {
+    // Update chart values + labels (and bar colors update automatically because d.index changes)
     chart.load({
       columns: [xCol, countCol],
       unload: true
