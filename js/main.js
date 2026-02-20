@@ -160,9 +160,15 @@ function updateDashboard() {
         type: 'bar'
       },
       axis: {
-        x: {
-          type: 'category'
-        },
+  x: {
+    type: 'category',
+    categories: columns.map(c => c[0]),
+    tick: {
+      rotate: 20,
+      multiline: false
+    }
+  }
+},
         y: {
           tick: {
             format: (d) => d
