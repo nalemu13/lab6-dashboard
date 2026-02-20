@@ -127,6 +127,4 @@ lab6-dashboard/
 
 ## Conclusion
 
-This smart dashboard demonstrates how interactive maps and charts can be combined to explore geographic data. By integrating Mapbox and C3.js, this project provides a tool that allows users to visualize and analyze traffic collision patterns across Seattle.
-
-This approach makes spatial data more accessible, interactive, and easier to understand.
+This smart dashboard demonstrates how interactive maps and charts can be combined to explore geographic data and provides a tool that allows users to visualize and analyze traffic collision patterns across Seattle. This approach makes spatial data more accessible, interactive, and easier to understand.
