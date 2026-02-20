@@ -1,5 +1,7 @@
-# Seattle Traffic Collisions Smart Dashboard
 #### No AI tools were used in this assignment.
+
+# Seattle Traffic Collisions Smart Dashboard
+
 ## Live Web Map
 https://nalemu13.github.io/lab6-dashboard/
 
