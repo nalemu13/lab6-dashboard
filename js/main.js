@@ -171,8 +171,7 @@ function updateDashboard() {
       },
       axis: {
         x: {
-          type: 'category',
-          categories: categories
+          show: false
         },
         y: {
           tick: { format: (d) => d }
