@@ -104,7 +104,7 @@ lab6-dashboard/
 
 ### My Dashboard
 
-![My Dashboard](img/)
+![My Dashboard](img/dashboard.png)
 
 ### Professor Demo Reference
 
