@@ -159,12 +159,22 @@ function updateDashboard() {
 
   if (!chart) {
     chart = c3.generate({
-      bindto: '#chart',
-      data: {
-        x: 'x',
-        columns: [xCol, countCol],
-        type: 'bar'
-      },
+  bindto: '#chart',
+  data: {
+    x: 'x',
+    columns: [xCol, countCol],
+    type: 'bar'
+  },
+
+  color: {
+    pattern: [
+      '#8aa1b1',  // Property Damage Only
+      '#42c3d6',  // Injury Collision
+      '#f59f00',  // Serious Injury
+      '#e03131',  // Fatality
+      '#adb5bd'   // Unknown
+    ]
+  },
       axis: {
         x: {
           type: 'category',
